@@ -15,7 +15,7 @@
 
 ## 1. 준비
 ```
-fc-list | grep -qi "Noto Sans CJK" || (sudo apt-get update -q && sudo apt-get install -y -q fonts-noto-cjk fonts-noto-color-emoji)
+fc-list | grep -qi "Noto Sans CJK" || (apt-get update -q && apt-get install -y -q fonts-noto-cjk fonts-noto-color-emoji)
 python -c "import playwright" 2>/dev/null || pip install -q playwright pillow
 ```
 - `playwright install`은 하지 않는다. 렌더러가 `/opt/pw-browsers/chromium`을 자동으로 쓴다.
