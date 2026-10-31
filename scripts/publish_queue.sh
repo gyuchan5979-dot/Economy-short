@@ -53,9 +53,10 @@ for slug in "${slugs[@]}"; do
   url="https://raw.githubusercontent.com/${MEDIA_REPO}/${sha}/${slug}.jpg"
   echo "이미지 URL: $url"
 
-  mkdir -p "published/$slug"
   python scripts/instagram.py publish --image-url "$url" \
-    --caption-file "queue/$slug.txt" --out "published/$slug/result.json"
+    --caption-file "queue/$slug.txt" --out "$WORK/result.json"
+  mkdir -p "published/$slug"
+  mv "$WORK/result.json" "published/$slug/result.json"
 
   # 게시 직후 바로 기록 (재실행 시 중복 게시 방지)
   git mv "queue/$slug.png" "published/$slug/image.png"

@@ -107,7 +107,11 @@ def env(name: str) -> str:
     return v
 
 
-def api(method: str, path: str, params: dict | None = None) -> dict:
+class NotReady(Exception):
+    pass
+
+
+def api(method: str, path: str, params: dict | None = None, retry_codes: tuple = ()) -> dict:
     ver = os.environ.get("IG_GRAPH_VERSION", "").strip() or "v26.0"
     url = f"https://graph.facebook.com/{ver}/{path}"
     params = dict(params or {}, access_token=env("IG_ACCESS_TOKEN"))
@@ -125,6 +129,8 @@ def api(method: str, path: str, params: dict | None = None) -> dict:
         except Exception:
             err = {}
         msg = err.get("error_user_msg") or err.get("message") or str(e)
+        if err.get("code") in retry_codes:
+            raise NotReady(msg)
         die(f"Graph API 오류 ({method} {path.split('?')[0]}): {msg} [code {err.get('code')}, sub {err.get('error_subcode')}]")
 
 
@@ -174,7 +180,16 @@ def cmd_publish(a):
     else:
         die("컨테이너 처리 시간 초과")
 
-    pub = api("POST", f"{ig}/media_publish", {"creation_id": cid})
+    # 컨테이너가 FINISHED여도 바로 게시하면 9007(아직 준비 안 됨)이 나올 때가 있어 재시도한다
+    for i in range(12):
+        try:
+            pub = api("POST", f"{ig}/media_publish", {"creation_id": cid}, retry_codes=(9007,))
+            break
+        except NotReady as e:
+            print(f"아직 준비 안 됨, 재시도 {i + 1}/12: {e}", file=sys.stderr)
+            time.sleep(5)
+    else:
+        die("게시 재시도 횟수 초과 (code 9007)")
     mid = pub["id"]
     info = api("GET", mid, {"fields": "permalink,timestamp"})
     result = {"media_id": mid, "permalink": info.get("permalink"), "timestamp": info.get("timestamp"),
