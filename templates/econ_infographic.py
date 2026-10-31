@@ -10,7 +10,7 @@
     {{글자}}  → 굵게
     |         → 줄바꿈
 """
-import argparse, asyncio, html, json, re, sys
+import argparse, asyncio, html, json, os, re, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
 
@@ -183,7 +183,9 @@ def build_caption(d: dict, cfg: dict) -> str:
 
 async def render(html_str: str, out: Path):
     async with async_playwright() as p:
-        b = await p.chromium.launch()
+        # Claude 클라우드 환경에는 크로미움이 /opt/pw-browsers/chromium 에 미리 설치돼 있다
+        exe = os.environ.get("CHROMIUM_PATH") or ("/opt/pw-browsers/chromium" if os.path.exists("/opt/pw-browsers/chromium") else None)
+        b = await p.chromium.launch(executable_path=exe)
         pg = await b.new_page(viewport={"width": 1080, "height": 1350})
         await pg.set_content(html_str)
         await pg.wait_for_timeout(400)
