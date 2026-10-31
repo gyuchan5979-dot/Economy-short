@@ -29,20 +29,29 @@
 - 크기 1080×1350 (인스타 세로형)
 - 폰트: Noto Sans CJK KR, 줄바꿈은 `word-break: keep-all`
 - 경제 템플릿 색: 네이비 #14254a, 레드 #d63a2f, 크림 배경 #faf6ee, 강조 노랑 #ffd23f
-- 채널명이 정해지면 템플릿의 "경제한장"과 `@your_account`를 교체한다.
+- 채널명이 정해지면 `config.json`의 "경제한장"과 `@your_account`를 교체한다.
 
 ## 실행 방법
 ```
 pip install playwright && playwright install chromium
-cd 프로젝트_폴더 && mkdir -p output
-python templates/econ_infographic.py
+python templates/econ_infographic.py content/2026-10-30-binance.json
 ```
-현재 템플릿은 내용이 HTML 안에 직접 들어 있다. 다음 작업은 내용을 JSON으로 분리해 매일 바꿔 끼우는 구조로 바꾸는 것.
+→ `output/2026-10-30-binance.png` (이미지)와 `.txt` (캡션)가 생긴다.
+
+## 새 게시물 만드는 법
+1. `content/` 에 `YYYY-MM-DD-주제.json` 파일을 만든다. 형식은 `content/2026-10-30-binance.json`을 그대로 따른다.
+2. 텍스트 표기: `[[글자]]` 강조색, `{{글자}}` 굵게, `|` 줄바꿈. 마크다운(`**`)은 쓰지 않는다.
+3. `hero`는 상단 일러스트: `hack`, `chart_up`, `chart_down`, `policy` 중 선택. 새로 필요하면 `templates/econ_infographic.py`의 `HEROES`에 추가.
+4. `points`는 정확히 6개, `impact`는 2개. 문구가 길어 하단 배너와 겹치면 스크립트가 경고하고 종료코드 2를 낸다 → 문구를 줄인다.
+5. `investment: true`면 투자 권유 아님 문구, `affiliate: true`면 파트너스 광고 문구가 자동으로 들어간다.
+6. 렌더한 이미지를 직접 열어 확인한 뒤 게시한다.
+
+채널명·아이디는 `config.json`에서 바꾼다.
 
 ## 남은 할 일
 - [ ] 채널명·메인 컬러 확정
 - [ ] 인스타 비즈니스(또는 크리에이터) 계정 개설, 페이스북 페이지 연결 (Make 자동 게시에 필요)
-- [ ] 템플릿을 JSON 입력 방식으로 리팩터링
+- [x] 사건·정책형 템플릿을 JSON 입력 방식으로 리팩터링 (`issue_cards.py`, `thumbnail.py`는 아직 하드코딩)
 - [ ] 수치 비교형 템플릿 제작
 - [ ] 이슈 수집 → 요약 → 이미지 생성 → 검수 → 게시 파이프라인 구성 (처음엔 게시 전 사람 검수 단계 유지)
 - [ ] 제휴 프로그램 가입 (쿠팡 파트너스 등)
