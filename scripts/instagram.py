@@ -8,7 +8,7 @@
   publish  --image-url URL --caption-file 파일 [--out 결과.json]
 
 환경변수 (GitHub Secrets에서 주입. 코드·JSON에 절대 넣지 않는다)
-  IG_ACCESS_TOKEN, IG_USER_ID, IG_GRAPH_VERSION(선택, 기본 v23.0)
+  IG_ACCESS_TOKEN, IG_USER_ID, IG_GRAPH_VERSION(선택, 기본 v26.0)
 """
 import argparse
 import json
@@ -108,7 +108,7 @@ def env(name: str) -> str:
 
 
 def api(method: str, path: str, params: dict | None = None) -> dict:
-    ver = os.environ.get("IG_GRAPH_VERSION", "").strip() or "v23.0"
+    ver = os.environ.get("IG_GRAPH_VERSION", "").strip() or "v26.0"
     url = f"https://graph.facebook.com/{ver}/{path}"
     params = dict(params or {}, access_token=env("IG_ACCESS_TOKEN"))
     data = urllib.parse.urlencode(params).encode()
