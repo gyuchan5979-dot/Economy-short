@@ -15,6 +15,13 @@
    - 토큰·계정 ID는 GitHub Secrets에만 저장한다. 코드나 JSON에 절대 넣지 않는다.
    - Graph API는 이미지 공개 URL이 필요하다. 저장소가 비공개라면 Actions에서 임시 공개 URL을 만드는 방법을 정해야 한다.
 3. 처음 1~2주는 바로 게시하지 않고 "게시 대기" 상태로 둔다. 운영자가 휴대폰에서 확인 후 승인(예: GitHub Actions 수동 실행 또는 승인 라벨)하면 게시. 품질이 안정되면 완전 자동으로 전환.
+4. 구현 (2026-10-31): `.github/workflows/instagram-publish.yml` + `scripts/publish_queue.sh` + `scripts/instagram.py`
+   - 게시 대기열은 `queue/이름.png` + `queue/이름.txt`. main의 `queue/`가 바뀌면 워크플로가 게시하고 `published/이름/`(image.png, caption.txt, result.json)으로 옮긴다. `published/`에 같은 이름이 있으면 건너뛴다 (중복 방지).
+   - 승인 방식: 예약 작업은 `post/이름` 브랜치에 커밋하고 PR(제목 `📮 게시 대기: …`)을 연다. 운영자가 Merge = 승인. 완전 자동 전환 시 main에 바로 푸시.
+   - 대기열에 올리기: `python scripts/instagram.py enqueue output/이름.png` (크기·캡션 규칙 검사 포함)
+   - 이미지는 JPEG로 변환해 공개 저장소의 `media` 브랜치에 올리고 raw URL을 Graph API에 넘긴다. 기본은 이 저장소. 비공개 전환 시 변수 `MEDIA_REPO` + 시크릿 `MEDIA_TOKEN` 필요.
+   - Secrets: `IG_ACCESS_TOKEN`(만료 없는 페이지 토큰), `IG_USER_ID`. 수동 실행 mode `check`로 토큰만 점검 가능.
+   - 운영자 세팅 절차: `docs/instagram-setup.md` (1~8단계)
 - 인스타 계정: 비즈니스 계정으로 전환함. 페이스북 페이지 연결과 Meta 개발자 토큰 발급은 운영자가 직접 해야 하며, Claude가 화면별로 안내한다.
 
 ## 지금까지 정한 것
@@ -62,7 +69,7 @@ python templates/econ_infographic.py content/2026-10-30-binance.json
 - [x] 인스타 계정 개설 (@econ.oneshot), 프로필 사진 A_sheet 적용, 비즈니스 계정 전환
 - [ ] 페이스북 페이지 만들어 인스타 연결 (운영자)
 - [ ] Meta 개발자 앱 생성, 장기 액세스 토큰·인스타 비즈니스 계정 ID 발급 → GitHub Secrets 등록 (운영자, Claude 안내)
-- [ ] GitHub Actions 게시 워크플로 작성 (승인 후 게시 방식으로 시작)
+- [x] GitHub Actions 게시 워크플로 작성 (승인 후 게시 방식으로 시작) — 실제 게시 테스트는 토큰 등록 후
 - [ ] 매일 이슈를 만드는 Claude 예약 작업 설정
 - [ ] 저장소 비공개 전환 (운영자)
 - [x] 사건·정책형 템플릿을 JSON 입력 방식으로 리팩터링 (`issue_cards.py`, `thumbnail.py`는 아직 하드코딩)
