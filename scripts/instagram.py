@@ -5,7 +5,8 @@
   validate queue/이름.png   → 이미지 크기·캡션 규칙 검사만
   check                    → 토큰·계정 확인 (게시하지 않음)
   jpeg     입력.png 출력.jpg → 인스타용 JPEG 변환 (인스타 API는 JPEG만 받음)
-  publish  --image-url URL --caption-file 파일 [--out 결과.json]
+  publish  --image-url URL [--image-url URL2 ...] --caption-file 파일 [--out 결과.json]  (2장 이상이면 캐러셀)
+  slides   queue/이름.png       → 그 게시물의 슬라이드 경로를 순서대로 출력
 
 환경변수 (GitHub Secrets에서 주입. 코드·JSON에 절대 넣지 않는다)
   IG_ACCESS_TOKEN, IG_USER_ID, IG_GRAPH_VERSION(선택, 기본 v26.0)
@@ -33,18 +34,30 @@ def die(msg: str, code: int = 1):
 
 
 # ---------- 검사 ----------
+SLIDE_SUFFIXES = ("cover", "", "detail")  # 캐러셀 순서: 이름.cover.png → 이름.png → 이름.detail.png
+
+
+def slides_for(png: Path) -> list[Path]:
+    """본문 이미지(이름.png)에서 같은 게시물의 슬라이드 목록을 순서대로 찾는다 (없는 장은 건너뜀)"""
+    base = png.name.split(".")[0]
+    out = [png.parent / (f"{base}.{s}.png" if s else f"{base}.png") for s in SLIDE_SUFFIXES]
+    return [f for f in out if f.exists()]
+
+
 def validate(png: Path) -> list[str]:
     errs = []
-    txt = png.with_suffix(".txt")
+    base = png.name.split(".")[0]
+    txt = png.parent / f"{base}.txt"
     if not png.exists():
         return [f"이미지 없음: {png}"]
     if not txt.exists():
         errs.append(f"캡션 파일 없음: {txt}")
     try:
         from PIL import Image
-        with Image.open(png) as im:
-            if im.size != (1080, 1350):
-                errs.append(f"이미지 크기 {im.size} (1080×1350이어야 함)")
+        for f in slides_for(png):
+            with Image.open(f) as im:
+                if im.size != (1080, 1350):
+                    errs.append(f"{f.name} 크기 {im.size} (1080×1350이어야 함)")
     except ImportError:
         print("⚠️ Pillow 없음: 이미지 크기 검사 생략", file=sys.stderr)
     if txt.exists():
@@ -83,9 +96,10 @@ def cmd_enqueue(a):
     QUEUE.mkdir(exist_ok=True)
     if (ROOT / "published" / src.stem).exists():
         die(f"이미 게시된 이름입니다: published/{src.stem}")
-    for f in (src, src.with_suffix(".txt")):
+    files = slides_for(src) + [src.with_suffix(".txt")]
+    for f in files:
         shutil.copy2(f, QUEUE / f.name)
-    print(f"✅ 대기열에 올림: queue/{src.stem}.png, queue/{src.stem}.txt")
+    print("✅ 대기열에 올림: " + ", ".join(f"queue/{f.name}" for f in files))
 
 
 def cmd_jpeg(a):
@@ -162,23 +176,36 @@ def check_url(url: str):
     die(f"이미지 공개 URL에 접근할 수 없습니다: {url}")
 
 
-def cmd_publish(a):
-    ig = env("IG_USER_ID")
-    caption = Path(a.caption_file).read_text(encoding="utf-8").strip()
-    check_url(a.image_url)
-
-    c = api("POST", f"{ig}/media", {"image_url": a.image_url, "caption": caption})
-    cid = c["id"]
-    print(f"컨테이너 생성: {cid}")
+def wait_container(cid: str):
     for _ in range(30):
         st = api("GET", cid, {"fields": "status_code,status"})
         if st.get("status_code") == "FINISHED":
-            break
+            return
         if st.get("status_code") in ("ERROR", "EXPIRED"):
             die(f"컨테이너 처리 실패: {st}")
         time.sleep(4)
-    else:
-        die("컨테이너 처리 시간 초과")
+    die("컨테이너 처리 시간 초과")
+
+
+def cmd_publish(a):
+    ig = env("IG_USER_ID")
+    caption = Path(a.caption_file).read_text(encoding="utf-8").strip()
+    urls = a.image_url
+    for u in urls:
+        check_url(u)
+
+    if len(urls) == 1:
+        cid = api("POST", f"{ig}/media", {"image_url": urls[0], "caption": caption})["id"]
+    else:  # 캐러셀: 장마다 컨테이너 → 묶음 컨테이너
+        children = []
+        for u in urls:
+            ch = api("POST", f"{ig}/media", {"image_url": u, "is_carousel_item": "true"})["id"]
+            wait_container(ch)
+            children.append(ch)
+        cid = api("POST", f"{ig}/media", {"media_type": "CAROUSEL", "children": ",".join(children),
+                                          "caption": caption})["id"]
+    print(f"컨테이너 생성: {cid} ({len(urls)}장)")
+    wait_container(cid)
 
     # 컨테이너가 FINISHED여도 바로 게시하면 9007(아직 준비 안 됨)이 나올 때가 있어 재시도한다
     for i in range(12):
@@ -193,10 +220,16 @@ def cmd_publish(a):
     mid = pub["id"]
     info = api("GET", mid, {"fields": "permalink,timestamp"})
     result = {"media_id": mid, "permalink": info.get("permalink"), "timestamp": info.get("timestamp"),
-              "image_url": a.image_url}
+              "image_urls": urls}
     print(f"✅ 게시 완료: {result['permalink']}")
     if a.out:
         Path(a.out).write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def cmd_slides(a):
+    """publish_queue.sh 용: 게시물 슬라이드 경로를 순서대로 한 줄씩 출력"""
+    for f in slides_for(Path(a.png)):
+        print(f)
 
 
 def main():
@@ -205,9 +238,11 @@ def main():
     p = sp.add_parser("enqueue"); p.add_argument("png"); p.set_defaults(f=cmd_enqueue)
     p = sp.add_parser("validate"); p.add_argument("png"); p.set_defaults(f=cmd_validate)
     p = sp.add_parser("check"); p.set_defaults(f=cmd_check)
+    p = sp.add_parser("slides"); p.add_argument("png"); p.set_defaults(f=cmd_slides)
     p = sp.add_parser("jpeg"); p.add_argument("src"); p.add_argument("dst"); p.set_defaults(f=cmd_jpeg)
     p = sp.add_parser("publish")
-    p.add_argument("--image-url", required=True); p.add_argument("--caption-file", required=True)
+    p.add_argument("--image-url", required=True, action="append", help="여러 번 주면 캐러셀 (순서대로)")
+    p.add_argument("--caption-file", required=True)
     p.add_argument("--out"); p.set_defaults(f=cmd_publish)
     a = ap.parse_args()
     a.f(a)

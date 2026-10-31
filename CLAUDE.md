@@ -55,7 +55,7 @@ pip install playwright pillow   # Claude 클라우드는 내장 크로미움 자
 apt-get install -y fonts-noto-cjk fonts-noto-color-emoji   # 폰트 없으면 숫자가 세리프체로 나옴
 python templates/econ_infographic.py content/2026-10-30-binance.json
 ```
-→ `output/2026-10-30-binance.png` (이미지)와 `.txt` (캡션)가 생긴다.
+→ `output/이름.cover.png`(1장 표지), `이름.png`(2장 본문), `이름.detail.png`(3장 내 돈 영향+저장 유도), `이름.txt`(캡션). 세 장이 캐러셀 한 게시물로 올라간다 (2026-10-31 도입, 노출용).
 
 ## 새 게시물 만드는 법
 1. `content/` 에 `YYYY-MM-DD-주제.json` 파일을 만든다. 형식은 `content/2026-10-30-binance.json`을 그대로 따른다.
@@ -63,6 +63,7 @@ python templates/econ_infographic.py content/2026-10-30-binance.json
 3. `hero`는 상단 일러스트: `hack`, `chart_up`, `chart_down`, `policy` 중 선택. 새로 필요하면 `templates/econ_infographic.py`의 `HEROES`에 추가.
 4. `points`는 정확히 6개, `impact`는 2개. 문구가 길어 하단 배너와 겹치면 스크립트가 경고하고 종료코드 2를 낸다 → 문구를 줄인다.
 5. `investment: true`면 투자 권유 아님 문구, `affiliate: true`면 파트너스 광고 문구가 자동으로 들어간다.
+5-1. `cover`(big·title·hook), `impact[].more`, `caption.keywords`(검색어 줄)는 `docs/daily-task.md` 4번 참고. 캡션 마지막 줄은 저장 유도 + 자기 계정 멘션 1회로 자동 생성.
 6. 렌더한 이미지를 직접 열어 확인한 뒤 게시한다.
 
 채널명·아이디는 `config.json`에서 바꾼다.

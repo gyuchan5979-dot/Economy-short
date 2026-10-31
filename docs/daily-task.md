@@ -54,23 +54,34 @@ python -c "import playwright" 2>/dev/null || pip install -q playwright pillow
 - 인과관계는 기사에 나온 만큼만 쓴다. 해석을 덧붙이지 않는다.
 - 확신이 없으면 게시하지 않고 7번 "보고"만 한다.
 
-## 4. 게시물 만들기
+## 4. 게시물 만들기 (3장짜리 캐러셀)
+게시물은 3장이 한 묶음이다: **1장 표지(후킹) → 2장 인포그래픽 본문 → 3장 "내 돈에 영향은?" 확대 + 저장·공유 유도**.
+여러 장 게시물은 체류 시간이 길고 인스타가 피드에 한 번 더 보여줘서 노출에 유리하다.
+
 1. `content/YYYY-MM-DD-영문주제.json` 작성. 형식은 `content/2026-10-31-intel-shock.json`을 따른다.
-   - 같은 날 두 번째 게시물이면 이름이 겹치지 않게 한다.
+   - 같은 날 두 번째 게시물이면 이름이 겹치지 않게 한다. 이름에 점(.)을 쓰지 않는다.
    - `hero`: 상승 `chart_up`, 하락 `chart_down`, 정책·제도 `policy`, 사고·해킹 `hack`
    - `points` 정확히 6개, `impact` 2개, `bars` 2~3개 (4개면 넘침)
    - 투자 관련이면 `investment: true`
    - `sources`: 언론사·날짜
-2. 렌더: `python templates/econ_infographic.py content/파일.json`
-   - 종료코드 2(넘침)면 문구를 줄여 다시 렌더한다. 보통 impact 문장을 한 줄로 줄이면 된다.
-3. **이미지를 Read로 직접 열어서** 확인한다:
+   - `cover` (1장 표지, 생략하면 헤드라인에서 자동 생성):
+     - `big`: 화면 절반을 채울 숫자 하나 (예 `-29%`, `1,400원`, `3.5%`). 숫자가 없는 이슈면 짧은 단어
+     - `title`: 무슨 일인지 10~14자 정도, `|`로 2줄
+     - `hook`: 넘기고 싶게 만드는 질문·반전 한 줄 (예 "실적은 좋았는데|왜 떨어졌을까?"). 낚시성 과장 금지, 본문에 답이 있어야 한다
+   - `impact[].more` (3장용, 선택): 2장에 못 넣은 한두 문장 보충 설명. 3장이 비어 보이지 않게 가능하면 채운다
+   - `caption.title`: 첫 줄. 사람들이 **검색할 단어**(종목명·지표명·정책명)가 들어가게
+   - `caption.keywords`: 둘째 줄, 검색어 3개 정도를 " · "로 (예 "인텔 주가 폭락 이유 · 반도체주 급락 · 나스닥 하락 정리")
+2. 렌더: `python templates/econ_infographic.py content/파일.json` → `output/이름.cover.png`, `이름.png`, `이름.detail.png`, `이름.txt`
+   - 종료코드 2(넘침)면 해당 장의 문구를 줄여 다시 렌더한다.
+3. **세 장 모두 Read로 직접 열어서** 확인한다:
    - 글자 잘림, 겹침, 막대 안 숫자 넘침, 이모지 깨짐, 세리프체 숫자
-   - 헤드라인 숫자와 본문 숫자가 서로 맞는지
-4. 캡션 `output/파일.txt`를 읽고 확인한다: 마크다운 기호 없음, 자기 계정 멘션 1회, 해시태그 5~8개
+   - 표지 큰 숫자·헤드라인 숫자·본문 숫자가 서로 맞는지
+   - 표지의 hook에 대한 답이 2~3장에 실제로 있는지
+4. 캡션 `output/파일.txt`를 읽고 확인한다: 마크다운 기호 없음, 자기 계정 멘션 1회(마지막 저장 유도 줄), 해시태그 5~8개
 
 ## 5. 게시
 ```
-python scripts/instagram.py enqueue output/파일.png
+python scripts/instagram.py enqueue output/파일.png   # 세 장 + 캡션이 함께 queue/로 복사된다
 git add content/파일.json queue/
 git commit -m "게시: <한 줄 제목>"
 git pull --rebase origin main && git push origin main

@@ -2,7 +2,11 @@
 
 사용법:
     python templates/econ_infographic.py content/2026-10-30-binance.json
-    → output/2026-10-30-binance.png, output/2026-10-30-binance.txt (캡션)
+    → output/이름.cover.png (1장: 후킹 표지)
+      output/이름.png       (2장: 인포그래픽 본문)
+      output/이름.detail.png (3장: 내 돈에 영향은? 확대 + 저장 유도)
+      output/이름.txt       (캡션)
+    세 장은 인스타에 여러 장(캐러셀) 게시물로 올라간다.
 
 내용은 JSON에서, 채널 정보는 config.json에서 읽는다.
 텍스트 안의 간단한 표기:
@@ -163,9 +167,104 @@ def build_html(d: dict, cfg: dict) -> str:
 </body></html>"""
 
 
+COVER_CSS = """
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#14254a;--red:#d63a2f;--cream:#faf6ee;--yellow:#ffd23f}
+body{width:1080px;height:1350px;background:var(--cream);font-family:'Noto Sans CJK KR';word-break:keep-all;color:var(--navy);position:relative;overflow:hidden}
+.brand{position:absolute;left:64px;top:56px;display:flex;align-items:center;gap:10px;font-weight:900;font-size:26px}
+.brand small{display:block;font-size:14px;letter-spacing:1px;font-weight:700;color:#5c6680}
+.page{position:absolute;right:64px;top:62px;font-size:24px;font-weight:900;color:#fff;background:var(--navy);border-radius:30px;padding:6px 18px}
+.hero{position:absolute;right:30px;top:150px;width:470px;height:385px;opacity:.95}
+.main{position:absolute;left:64px;right:64px;top:300px}
+.kicker{display:inline-block;background:var(--red);color:#fff;font-weight:900;font-size:34px;padding:8px 22px;border-radius:8px}
+.big{font-size:250px;font-weight:900;letter-spacing:-12px;line-height:1;color:var(--red);margin-top:30px}
+.title{font-size:92px;font-weight:900;letter-spacing:-5px;line-height:1.12;margin-top:18px}
+.title .hl{color:var(--red)}
+.hook{position:absolute;left:64px;right:64px;bottom:150px;background:var(--navy);border-radius:22px;padding:30px 40px;color:#fff;font-size:44px;font-weight:900;line-height:1.35;letter-spacing:-1.5px}
+.hook .hl{color:var(--yellow)}
+.swipe{position:absolute;left:0;right:0;bottom:64px;text-align:center;font-size:30px;font-weight:900;color:var(--navy)}
+.swipe span{color:var(--red)}
+.src{position:absolute;left:0;right:0;bottom:22px;text-align:center;font-size:15px;color:#8a8e99}
+"""
+
+DETAIL_CSS = """
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#14254a;--red:#d63a2f;--cream:#faf6ee;--blue:#e9eef8;--peach:#fbeee3;--yellow:#ffd23f}
+body{width:1080px;height:1350px;background:var(--cream);font-family:'Noto Sans CJK KR';word-break:keep-all;color:#1d2230;position:relative;overflow:hidden}
+.brand{position:absolute;left:64px;top:56px;display:flex;align-items:center;gap:10px;font-weight:900;font-size:26px;color:var(--navy)}
+.brand small{display:block;font-size:14px;letter-spacing:1px;font-weight:700;color:#5c6680}
+.page{position:absolute;right:64px;top:62px;font-size:24px;font-weight:900;color:#fff;background:var(--navy);border-radius:30px;padding:6px 18px}
+h2{position:absolute;left:64px;top:170px;font-size:76px;font-weight:900;letter-spacing:-4px;color:var(--navy)}
+.cards{position:absolute;left:64px;right:64px;top:300px;bottom:400px;display:flex;flex-direction:column;justify-content:center;gap:28px}
+.card{border-radius:24px;padding:34px 40px}
+.card .h{display:inline-block;font-size:30px;font-weight:900;color:#fff;border-radius:8px;padding:6px 18px;margin-bottom:16px}
+.card p{font-size:40px;line-height:1.45;letter-spacing:-1px;color:#1d2230;font-weight:500}
+.card p b{font-weight:900;color:var(--navy)}
+.card .more{font-size:30px;line-height:1.5;color:#4a5060;margin-top:12px}
+.q{position:absolute;left:64px;right:64px;bottom:250px;text-align:center;font-size:40px;font-weight:900;line-height:1.35;letter-spacing:-1.5px;color:var(--navy)}
+.q .hl{color:var(--red)}
+.save{position:absolute;left:64px;right:64px;bottom:80px;background:var(--navy);border-radius:22px;padding:26px 30px;display:flex;justify-content:space-around;color:#fff;font-size:34px;font-weight:900}
+.save span{color:var(--yellow)}
+.src{position:absolute;left:0;right:0;bottom:24px;text-align:center;font-size:15px;color:#8a8e99}
+"""
+
+
+def cover_fields(d: dict) -> dict:
+    """cover가 없으면 헤드라인에서 만든다: [[강조]] → 큰 숫자, 나머지 → 제목"""
+    c = dict(d.get("cover") or {})
+    m = re.search(r"\[\[(.+?)\]\]", d["headline"])
+    c.setdefault("big", m.group(1) if m else "")
+    c.setdefault("title", re.sub(r"\s*\[\[.+?\]\]\s*", " ", d["headline"]).strip(" |") if m else d["headline"])
+    c.setdefault("hook", d["panel_left"]["title"])
+    return c
+
+
+def brand_html(cfg: dict) -> str:
+    return (f"<div class='brand'>{cfg['brand_icon']} <div>{html.escape(cfg['brand_name'])}"
+            f"<small>{html.escape(cfg['brand_sub'])}</small></div></div>")
+
+
+def build_cover_html(d: dict, cfg: dict) -> str:
+    c = cover_fields(d)
+    hero = HEROES.get(d.get("hero", "chart_up"), HEROES["chart_up"])
+    big = f"<div class='big'>{fmt(c['big'])}</div>" if c["big"] else ""
+    return f"""<html><head><meta charset='utf-8'><style>{COVER_CSS}</style></head><body>
+{brand_html(cfg)}<div class='page'>1 / 3</div>
+<svg class='hero' viewBox='0 0 330 270'>{hero}</svg>
+<div class='main'><div class='kicker'>{fmt(d['kicker'])}</div>{big}<div class='title'>{fmt(c['title'])}</div></div>
+<div class='hook'>{fmt(c['hook'])}</div>
+<div class='swipe'>넘겨서 한 장으로 정리 보기 <span>→</span></div>
+<div class='src'>{html.escape(d['sources'])} · 일러스트</div>
+</body></html>"""
+
+
+def build_detail_html(d: dict, cfg: dict) -> str:
+    colors = [("var(--blue)", "var(--navy)"), ("var(--peach)", "var(--red)")]
+    cards = "".join(
+        f"<div class='card' style='background:{colors[i % 2][0]}'><span class='h' style='background:{colors[i % 2][1]}'>"
+        f"{fmt(m['who'])}</span><p>{fmt(m['text'])}</p>"
+        + (f"<div class='more'>{fmt(m['more'])}</div>" if m.get("more") else "") + "</div>"
+        for i, m in enumerate(d["impact"][:2])
+    )
+    notes = [html.escape(d["sources"])]
+    if d.get("investment"):
+        notes.append("투자 권유가 아닌 정보 요약입니다")
+    return f"""<html><head><meta charset='utf-8'><style>{DETAIL_CSS}</style></head><body>
+{brand_html(cfg)}<div class='page'>3 / 3</div>
+<h2>{fmt(d.get('impact_title', '내 돈에 영향은?'))}</h2>
+<div class='cards'>{cards}</div>
+<div class='q'>{fmt(d['question'])}</div>
+<div class='save'><div>📌 <span>저장</span>해두고 다시 보기</div><div>🔁 필요한 사람에게 <span>공유</span></div></div>
+<div class='src'>{' · '.join(notes)}</div>
+</body></html>"""
+
+
 def build_caption(d: dict, cfg: dict) -> str:
     c = d.get("caption", {})
-    lines = [f"🚨 {plain(c.get('title', d['headline']))}", ""]
+    lines = [f"🚨 {plain(c.get('title', d['headline']))}"]
+    if c.get("keywords"):  # 인스타 검색용: 사람들이 실제로 검색할 단어를 자연스럽게 한 줄로
+        lines.append(plain(c["keywords"]))
+    lines.append("")
     for sec in c.get("sections", []):
         lines.append(f"📌 {plain(sec['title'])}")
         lines += [plain(x) for x in sec["lines"]]
@@ -176,26 +275,39 @@ def build_caption(d: dict, cfg: dict) -> str:
         lines += ["이 게시물은 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.", ""]
     if d.get("investment"):
         lines += ["※ 투자 권유가 아닌 정보 요약입니다.", ""]
-    lines += [f"매일 경제 이슈 한 장 정리 👉 {cfg['handle']}", ""]
+    lines += [f"📌 저장해두고 다시 보기 · 매일 경제 한 장 👉 {cfg['handle']}", ""]
     lines.append(" ".join("#" + t.lstrip("#") for t in c.get("hashtags", [])))
     return "\n".join(lines).strip() + "\n"
 
 
-async def render(html_str: str, out: Path):
+OVERFLOW_JS = """() => {
+    const r = s => document.querySelector(s)?.getBoundingClientRect();
+    const ban = r('.ban');
+    if (ban) { const secs=[...document.querySelectorAll('.sec')];
+        return secs.length ? secs[secs.length-1].getBoundingClientRect().bottom - ban.top : 0 }
+    const cards = document.querySelector('.cards'), q = r('.q');   // 3장: 카드 내용이 영역을 넘거나 질문과 겹치는지
+    if (cards && q) return Math.max(cards.scrollHeight - cards.clientHeight,
+        [...cards.children].pop().getBoundingClientRect().bottom + 20 - q.top);
+    const main = r('.main'), hook = r('.hook');       // 1장: 제목이 후킹 박스와 겹치는지
+    if (main && hook) return main.bottom + 20 - hook.top;
+    return 0 }"""
+
+
+async def render(pages: list[tuple[str, Path]]) -> dict:
+    """[(html, 출력경로)] 를 렌더하고 {경로: 넘침px} 를 돌려준다"""
+    res = {}
     async with async_playwright() as p:
         # Claude 클라우드 환경에는 크로미움이 /opt/pw-browsers/chromium 에 미리 설치돼 있다
         exe = os.environ.get("CHROMIUM_PATH") or ("/opt/pw-browsers/chromium" if os.path.exists("/opt/pw-browsers/chromium") else None)
         b = await p.chromium.launch(executable_path=exe)
         pg = await b.new_page(viewport={"width": 1080, "height": 1350})
-        await pg.set_content(html_str)
-        await pg.wait_for_timeout(400)
-        # 넘침 검사: 마지막 섹션이 하단 배너를 침범하면 경고
-        overlap = await pg.evaluate("""() => {
-            const secs=[...document.querySelectorAll('.sec')]; const ban=document.querySelector('.ban');
-            return secs.length ? secs[secs.length-1].getBoundingClientRect().bottom - ban.getBoundingClientRect().top : 0 }""")
-        await pg.screenshot(path=str(out))
+        for html_str, out in pages:
+            await pg.set_content(html_str)
+            await pg.wait_for_timeout(400)
+            res[out] = await pg.evaluate(OVERFLOW_JS)
+            await pg.screenshot(path=str(out))
         await b.close()
-    return overlap
+    return res
 
 
 def main():
@@ -209,14 +321,21 @@ def main():
     cfg = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
     outdir = Path(a.outdir); outdir.mkdir(parents=True, exist_ok=True)
 
-    png, txt = outdir / f"{src.stem}.png", outdir / f"{src.stem}.txt"
-    overlap = asyncio.run(render(build_html(d, cfg), png))
+    stem = src.stem
+    pages = [(build_cover_html(d, cfg), outdir / f"{stem}.cover.png"),
+             (build_html(d, cfg), outdir / f"{stem}.png"),
+             (build_detail_html(d, cfg), outdir / f"{stem}.detail.png")]
+    txt = outdir / f"{stem}.txt"
+    res = asyncio.run(render(pages))
     txt.write_text(build_caption(d, cfg), encoding="utf-8")
-    print(f"이미지: {png}\n캡션: {txt}")
-    if overlap > 0:
-        print(f"⚠️ 내용이 하단 배너와 {overlap:.0f}px 겹칩니다. 문구를 줄이세요.", file=sys.stderr)
+    for _, out in pages:
+        print(f"이미지: {out}")
+    print(f"캡션: {txt}")
+    bad = [(o, v) for o, v in res.items() if v > 0]
+    for o, v in bad:
+        print(f"⚠️ {o.name}: 내용이 {v:.0f}px 겹칩니다. 문구를 줄이세요.", file=sys.stderr)
+    if bad:
         sys.exit(2)
-
 
 if __name__ == "__main__":
     main()

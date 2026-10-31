@@ -19,7 +19,11 @@ if [ $# -gt 0 ] && [ -n "$1" ]; then
 else
   shopt -s nullglob
   slugs=()
-  for f in queue/*.png; do slugs+=("$(basename "$f" .png)"); done
+  for f in queue/*.png; do
+    b="$(basename "$f" .png)"
+    [[ "$b" == *.* ]] && continue   # 이름.cover.png / 이름.detail.png 는 같은 게시물의 다른 장
+    slugs+=("$b")
+  done
 fi
 
 if [ ${#slugs[@]} -eq 0 ]; then
@@ -45,7 +49,14 @@ for slug in "${slugs[@]}"; do
   fi
   python scripts/instagram.py validate "queue/$slug.png"
 
-  python scripts/instagram.py jpeg "queue/$slug.png" "$MEDIA_DIR/$slug.jpg"
+  # 슬라이드(표지 → 본문 → 상세)를 JPEG로 바꿔 공개 media 브랜치에 올린다
+  mapfile -t slides < <(python scripts/instagram.py slides "queue/$slug.png")
+  jpgs=()
+  for f in "${slides[@]}"; do
+    name="$(basename "$f" .png).jpg"
+    python scripts/instagram.py jpeg "$f" "$MEDIA_DIR/$name"
+    jpgs+=("$name")
+  done
   git -C "$MEDIA_DIR" add -A
   # 재실행 때는 같은 이미지가 이미 올라가 있을 수 있다 → 바뀐 게 있을 때만 커밋
   if ! git -C "$MEDIA_DIR" diff --cached --quiet; then
@@ -53,16 +64,23 @@ for slug in "${slugs[@]}"; do
     git -C "$MEDIA_DIR" push -q origin media
   fi
   sha="$(git -C "$MEDIA_DIR" rev-parse HEAD)"
-  url="https://raw.githubusercontent.com/${MEDIA_REPO}/${sha}/${slug}.jpg"
-  echo "이미지 URL: $url"
+  url_args=()
+  for name in "${jpgs[@]}"; do
+    url="https://raw.githubusercontent.com/${MEDIA_REPO}/${sha}/${name}"
+    echo "이미지 URL: $url"
+    url_args+=(--image-url "$url")
+  done
 
-  python scripts/instagram.py publish --image-url "$url" \
+  python scripts/instagram.py publish "${url_args[@]}" \
     --caption-file "queue/$slug.txt" --out "$WORK/result.json"
   mkdir -p "published/$slug"
   mv "$WORK/result.json" "published/$slug/result.json"
 
   # 게시 직후 바로 기록 (재실행 시 중복 게시 방지)
   git mv "queue/$slug.png" "published/$slug/image.png"
+  for part in cover detail; do
+    [ -f "queue/$slug.$part.png" ] && git mv "queue/$slug.$part.png" "published/$slug/$part.png"
+  done
   git mv "queue/$slug.txt" "published/$slug/caption.txt"
   git add "published/$slug/result.json"
   git commit -q -m "게시 완료: $slug"
