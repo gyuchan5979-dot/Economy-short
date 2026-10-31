@@ -14,10 +14,11 @@
    - 이유: Claude 클라우드 작업 환경은 인스타·페이스북 서버에 직접 접속할 수 없다 (GitHub은 가능).
    - 토큰·계정 ID는 GitHub Secrets에만 저장한다. 코드나 JSON에 절대 넣지 않는다.
    - Graph API는 이미지 공개 URL이 필요하다. 저장소가 비공개라면 Actions에서 임시 공개 URL을 만드는 방법을 정해야 한다.
-3. 처음 1~2주는 바로 게시하지 않고 "게시 대기" 상태로 둔다. 운영자가 휴대폰에서 확인 후 승인(예: GitHub Actions 수동 실행 또는 승인 라벨)하면 게시. 품질이 안정되면 완전 자동으로 전환.
+3. ~~처음 1~2주는 승인 후 게시~~ → 2026-10-31 운영자 결정으로 **승인 없이 바로 게시**. 대신 사실 확인·이미지 확인 기준을 못 맞추면 게시하지 않는다. 절차와 일정은 `docs/daily-task.md`.
+   - 일정(KST): 아침판 화~토 06:43 실행 → 07시대 게시(밤사이 미국 증시·글로벌), 저녁판 일~금 19:47 실행 → 20시대 게시(국내 정책·부동산·물가·생활경제, 일요일은 다음 주 전망)
 4. 구현 (2026-10-31): `.github/workflows/instagram-publish.yml` + `scripts/publish_queue.sh` + `scripts/instagram.py`
    - 게시 대기열은 `queue/이름.png` + `queue/이름.txt`. main의 `queue/`가 바뀌면 워크플로가 게시하고 `published/이름/`(image.png, caption.txt, result.json)으로 옮긴다. `published/`에 같은 이름이 있으면 건너뛴다 (중복 방지).
-   - 승인 방식: 예약 작업은 `post/이름` 브랜치에 커밋하고 PR(제목 `📮 게시 대기: …`)을 연다. 운영자가 Merge = 승인. 완전 자동 전환 시 main에 바로 푸시.
+   - 현재: 예약 작업이 main의 `queue/`에 바로 푸시 → 자동 게시. (승인이 다시 필요해지면 `post/이름` 브랜치 PR → Merge 방식으로 돌아가면 된다. 워크플로 수정 불필요)
    - 대기열에 올리기: `python scripts/instagram.py enqueue output/이름.png` (크기·캡션 규칙 검사 포함)
    - 이미지는 JPEG로 변환해 공개 저장소의 `media` 브랜치에 올리고 raw URL을 Graph API에 넘긴다. 기본은 이 저장소. 비공개 전환 시 변수 `MEDIA_REPO` + 시크릿 `MEDIA_TOKEN` 필요.
    - Secrets: `IG_ACCESS_TOKEN`(만료 없는 페이지 토큰), `IG_USER_ID`. 수동 실행 mode `check`로 토큰만 점검 가능.
@@ -49,7 +50,8 @@
 
 ## 실행 방법
 ```
-pip install playwright && playwright install chromium
+pip install playwright pillow   # Claude 클라우드는 내장 크로미움 자동 사용 (playwright install 불필요)
+sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji   # 폰트 없으면 숫자가 세리프체로 나옴
 python templates/econ_infographic.py content/2026-10-30-binance.json
 ```
 → `output/2026-10-30-binance.png` (이미지)와 `.txt` (캡션)가 생긴다.
@@ -69,11 +71,11 @@ python templates/econ_infographic.py content/2026-10-30-binance.json
 - [x] 인스타 계정 개설 (@econ.oneshot), 프로필 사진 A_sheet 적용, 비즈니스 계정 전환
 - [x] 페이스북 페이지 "경제한장" 만들어 인스타 연결 (2026-10-31)
 - [x] Meta 개발자 앱(econ-oneshot-publisher, 개발 모드) 생성, 만료 없는 페이지 토큰·인스타 계정 ID → GitHub Secrets 등록 (2026-10-31)
-- [x] GitHub Actions 게시 워크플로 작성 (승인 후 게시 방식으로 시작). 토큰·계정 확인 성공 (2026-10-31), 실제 게시는 첫 게시물로 확인 예정
-- [ ] 매일 이슈를 만드는 Claude 예약 작업 설정
+- [x] GitHub Actions 게시 워크플로 작성, 실제 게시 성공 (2026-10-31)
+- [x] 매일 이슈를 만드는 Claude 예약 작업 설정 (아침판·저녁판, 2026-10-31)
 - [ ] 저장소 비공개 전환 (운영자)
 - [x] 사건·정책형 템플릿을 JSON 입력 방식으로 리팩터링 (`issue_cards.py`, `thumbnail.py`는 아직 하드코딩)
 - [ ] 수치 비교형 템플릿 제작
-- [ ] 첫 게시물: 오늘 이슈로 하나 만들어 수동 게시 (바이낸스 샘플은 이슈가 지나서 쓰지 않음)
+- [x] 첫 게시물: 인텔 하루 -29% 폭락 (2026-10-31, https://www.instagram.com/p/DfKb0nQDUC9/)
 - 프로필 소개글: "경제한장 | ECONOMY IN ONE / 📊 오늘의 경제 이슈, 한 장으로 끝 / 💡 뉴스 요약 · 내 돈에 미치는 영향까지", 이름 칸 추천: "경제한장 | 경제뉴스 요약"
 - [ ] 제휴 프로그램 가입 (쿠팡 파트너스 등)
