@@ -69,7 +69,7 @@ python templates/econ_infographic.py content/2026-10-30-binance.json
 - [x] 인스타 계정 개설 (@econ.oneshot), 프로필 사진 A_sheet 적용, 비즈니스 계정 전환
 - [x] 페이스북 페이지 "경제한장" 만들어 인스타 연결 (2026-10-31)
 - [x] Meta 개발자 앱(econ-oneshot-publisher, 개발 모드) 생성, 만료 없는 페이지 토큰·인스타 계정 ID → GitHub Secrets 등록 (2026-10-31)
-- [x] GitHub Actions 게시 워크플로 작성 (승인 후 게시 방식으로 시작) — 실제 게시 테스트는 토큰 등록 후
+- [x] GitHub Actions 게시 워크플로 작성 (승인 후 게시 방식으로 시작). 토큰·계정 확인 성공 (2026-10-31), 실제 게시는 첫 게시물로 확인 예정
 - [ ] 매일 이슈를 만드는 Claude 예약 작업 설정
 - [ ] 저장소 비공개 전환 (운영자)
 - [x] 사건·정책형 템플릿을 JSON 입력 방식으로 리팩터링 (`issue_cards.py`, `thumbnail.py`는 아직 하드코딩)
