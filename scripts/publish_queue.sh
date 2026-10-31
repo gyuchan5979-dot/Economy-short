@@ -47,8 +47,11 @@ for slug in "${slugs[@]}"; do
 
   python scripts/instagram.py jpeg "queue/$slug.png" "$MEDIA_DIR/$slug.jpg"
   git -C "$MEDIA_DIR" add -A
-  git -C "$MEDIA_DIR" commit -q -m "media: $slug"
-  git -C "$MEDIA_DIR" push -q origin media
+  # 재실행 때는 같은 이미지가 이미 올라가 있을 수 있다 → 바뀐 게 있을 때만 커밋
+  if ! git -C "$MEDIA_DIR" diff --cached --quiet; then
+    git -C "$MEDIA_DIR" commit -q -m "media: $slug"
+    git -C "$MEDIA_DIR" push -q origin media
+  fi
   sha="$(git -C "$MEDIA_DIR" rev-parse HEAD)"
   url="https://raw.githubusercontent.com/${MEDIA_REPO}/${sha}/${slug}.jpg"
   echo "이미지 URL: $url"
