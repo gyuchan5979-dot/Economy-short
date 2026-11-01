@@ -55,6 +55,15 @@ HEROES = {
 <rect x='199' y='118' width='26' height='86'/><rect x='249' y='118' width='26' height='86'/></g>
 <rect x='55' y='204' width='250' height='18' fill='#14254a'/>
 <circle cx='180' cy='78' r='12' fill='#f2b632'/>""",
+    "calendar": """<circle cx='180' cy='135' r='120' fill='#e9eef8'/>
+<rect x='70' y='50' width='220' height='180' rx='16' fill='#ffffff' stroke='#14254a' stroke-width='6'/>
+<rect x='70' y='50' width='220' height='50' rx='16' fill='#14254a'/><rect x='70' y='84' width='220' height='16' fill='#14254a'/>
+<rect x='110' y='34' width='12' height='36' rx='6' fill='#d63a2f'/><rect x='238' y='34' width='12' height='36' rx='6' fill='#d63a2f'/>
+<g fill='#c9d3e8'><rect x='92' y='118' width='34' height='26' rx='5'/><rect x='136' y='118' width='34' height='26' rx='5'/>
+<rect x='224' y='118' width='34' height='26' rx='5'/><rect x='92' y='158' width='34' height='26' rx='5'/>
+<rect x='136' y='158' width='34' height='26' rx='5'/><rect x='180' y='158' width='34' height='26' rx='5'/></g>
+<rect x='180' y='118' width='34' height='26' rx='5' fill='#d63a2f'/><rect x='224' y='158' width='34' height='26' rx='5' fill='#f2b632'/>
+<circle cx='292' cy='206' r='34' fill='#f2b632'/><path d='M292 186 v22 l14 8' stroke='#14254a' stroke-width='6' fill='none' stroke-linecap='round'/>""",
 }
 
 CSS = """
@@ -178,7 +187,7 @@ body{width:1080px;height:1350px;background:var(--cream);font-family:'Noto Sans C
 .main{position:absolute;left:64px;right:64px;top:300px}
 .kicker{display:inline-block;background:var(--red);color:#fff;font-weight:900;font-size:34px;padding:8px 22px;border-radius:8px}
 .big{font-size:250px;font-weight:900;letter-spacing:-12px;line-height:1;color:var(--red);margin-top:30px}
-.title{font-size:92px;font-weight:900;letter-spacing:-5px;line-height:1.12;margin-top:18px}
+.title{font-size:92px;font-weight:900;letter-spacing:-5px;line-height:1.12;margin-top:34px}
 .title .hl{color:var(--red)}
 .hook{position:absolute;left:64px;right:64px;bottom:150px;background:var(--navy);border-radius:22px;padding:30px 40px;color:#fff;font-size:44px;font-weight:900;line-height:1.35;letter-spacing:-1.5px}
 .hook .hl{color:var(--yellow)}
