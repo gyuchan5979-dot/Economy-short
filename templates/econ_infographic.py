@@ -237,7 +237,7 @@ def build_cover_html(d: dict, cfg: dict) -> str:
     c = cover_fields(d)
     hero = HEROES.get(d.get("hero", "chart_up"), HEROES["chart_up"])
     # 큰 숫자가 길면 글자를 줄여 오른쪽 일러스트와 겹치지 않게 한다
-    n = len(c["big"])
+    n = sum(2 if ord(ch) > 0x1100 else 1 for ch in c["big"])  # 한글은 폭이 넓어 2칸으로 센다
     size = 250 if n <= 4 else 200 if n <= 5 else 165 if n <= 7 else 130
     big = f"<div class='big' style='font-size:{size}px'>{fmt(c['big'])}</div>" if c["big"] else ""
     return f"""<html><head><meta charset='utf-8'><style>{COVER_CSS}</style></head><body>
