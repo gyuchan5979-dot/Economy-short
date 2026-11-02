@@ -236,7 +236,10 @@ def brand_html(cfg: dict) -> str:
 def build_cover_html(d: dict, cfg: dict) -> str:
     c = cover_fields(d)
     hero = HEROES.get(d.get("hero", "chart_up"), HEROES["chart_up"])
-    big = f"<div class='big'>{fmt(c['big'])}</div>" if c["big"] else ""
+    # 큰 숫자가 길면 글자를 줄여 오른쪽 일러스트와 겹치지 않게 한다
+    n = len(c["big"])
+    size = 250 if n <= 4 else 200 if n <= 5 else 165 if n <= 7 else 130
+    big = f"<div class='big' style='font-size:{size}px'>{fmt(c['big'])}</div>" if c["big"] else ""
     return f"""<html><head><meta charset='utf-8'><style>{COVER_CSS}</style></head><body>
 {brand_html(cfg)}<div class='page'>1 / 3</div>
 <svg class='hero' viewBox='0 0 330 270'>{hero}</svg>
