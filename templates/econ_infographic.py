@@ -137,7 +137,7 @@ def build_html(d: dict, cfg: dict) -> str:
     vmax = max(b["value"] for b in right["bars"]) or 1
     bars = "".join(
         f"<div class='bar'><span class='n'>{fmt(b['label'])}<small>{fmt(b.get('sub',''))}</small></span>"
-        f"<div class='b' style='width:{max(70, int(300 * b['value'] / vmax))}px;"
+        f"<div class='b' style='width:{max(24 + 14 * sum(2 if ord(ch) > 0x1100 else 1 for ch in str(b['text'])), int(300 * b['value'] / vmax))}px;"
         f"background:{'var(--red)' if b.get('highlight') else '#c9a98f'}'>{fmt(b['text'])}</div></div>"
         for b in right["bars"]
     )
