@@ -296,7 +296,10 @@ OVERFLOW_JS = """() => {
     const r = s => document.querySelector(s)?.getBoundingClientRect();
     const ban = r('.ban');
     if (ban) { const secs=[...document.querySelectorAll('.sec')];
-        return secs.length ? secs[secs.length-1].getBoundingClientRect().bottom - ban.top : 0 }
+        const sub = r('.subline'), row = r('.row');            // 헤드라인이 3줄이 되어 패널을 덮는지
+        const top = (sub && row) ? sub.bottom - 4 - row.top : 0;
+        const bottom = secs.length ? secs[secs.length-1].getBoundingClientRect().bottom - ban.top : 0;
+        return Math.max(top, bottom) }
     const cards = document.querySelector('.cards'), q = r('.q');   // 3장: 카드 내용이 영역을 넘거나 질문과 겹치는지
     if (cards && q) return Math.max(cards.scrollHeight - cards.clientHeight,
         [...cards.children].pop().getBoundingClientRect().bottom + 20 - q.top);
